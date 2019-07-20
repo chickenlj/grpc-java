@@ -989,7 +989,7 @@ static void PrintDubboInterface(
         p->Print("private "); p->Print(service_name.c_str()); p->Print("Stub stub;\n\n");
 
         // Consustor
-        p->Print(*vars, "public $dubbo_stub$(Channel channel) {\n"
+        p->Print(*vars, "public $dubbo_stub$($Channel$ channel) {\n"
         "   blockingStub = $service_class_name$.newBlockingStub(channel);\n"
         "   futureStub = $service_class_name$.newFutureStub(channel);\n"
         "   stub = $service_class_name$.newStub(channel);\n"
