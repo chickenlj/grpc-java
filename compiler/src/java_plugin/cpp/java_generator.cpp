@@ -600,17 +600,11 @@ static void PrintStub(
     Printer* p, StubType type, bool generate_nano) {
   const string service_name = service->name();
   (*vars)["service_name"] = service_name;
-  (*vars)["abstract_name"] = service_name + "ImplBase";
   string stub_name = service_name;
   string client_name = service_name;
   CallType call_type;
-  bool impl_base = false;
   bool interface = false;
   switch (type) {
-    case ABSTRACT_CLASS:
-      call_type = ASYNC_CALL;
-      impl_base = true;
-      break;
     case ASYNC_CLIENT_IMPL:
       call_type = ASYNC_CALL;
       stub_name += "Stub";
@@ -650,19 +644,15 @@ static void PrintStub(
     p->Print(*vars, "@$Deprecated$\n");
   }
 
-  if (impl_base) {
-    p->Print(
-        *vars,
-        "public static abstract class $abstract_name$ implements $BindableService$ {\n");
-  } else {
-    p->Print(
-        *vars,
-        "public static final class $stub_name$ extends $AbstractStub$<$stub_name$> {\n");
-  }
+
+  p->Print(
+      *vars,
+      "public static final class $stub_name$ extends $AbstractStub$<$stub_name$> {\n");
+
   p->Indent();
 
   // Constructor and build() method
-  if (!impl_base && !interface) {
+  if (!interface) {
     p->Print(
         *vars,
         "private $stub_name$($Channel$ channel) {\n");
@@ -776,25 +766,7 @@ static void PrintStub(
     // Method body.
     p->Print(" {\n");
     p->Indent();
-    if (impl_base) {
-      switch (call_type) {
-        // NB: Skipping validation of service methods. If something is wrong, we wouldn't get to
-        // this point as compiler would return errors when generating service interface.
-        case ASYNC_CALL:
-          if (client_streaming) {
-            p->Print(
-                *vars,
-                "return asyncUnimplementedStreamingCall($method_method_name$(), responseObserver);\n");
-          } else {
-            p->Print(
-                *vars,
-                "asyncUnimplementedUnaryCall($method_method_name$(), responseObserver);\n");
-          }
-          break;
-        default:
-          break;
-      }
-    } else if (!interface) {
+    if (!interface) {
       switch (call_type) {
         case BLOCKING_CALL:
           GRPC_CODEGEN_CHECK(!client_streaming)
@@ -852,18 +824,238 @@ static void PrintStub(
     p->Print("}\n");
   }
 
-  if (impl_base) {
+  p->Outdent();
+  p->Print("}\n\n");
+}
+
+static void PrintImplBase(
+    const ServiceDescriptor* service,
+    std::map<string, string>* vars,
+    Printer* p, bool generate_nano) {
+  const string service_name = service->name();
+  (*vars)["service_name"] = service_name;
+  (*vars)["abstract_name"] = service_name + "ImplBase";
+  string stub_name = service_name;
+  string client_name = service_name;
+  CallType call_type;
+
+  (*vars)["dubbo_interface"] = "I" + service_name;
+
+  p->Print(
+        *vars,
+        "public static abstract class $abstract_name$ implements $BindableService$, $dubbo_interface$ {\n\n");
+
+  // RPC methods
+  for (int i = 0; i < service->method_count(); ++i) {
+    const MethodDescriptor* method = service->method(i);
+    (*vars)["input_type"] = MessageFullJavaName(generate_nano,
+                                                method->input_type());
+    (*vars)["output_type"] = MessageFullJavaName(generate_nano,
+                                                 method->output_type());
+    (*vars)["lower_method_name"] = LowerMethodName(method);
+    (*vars)["method_method_name"] = MethodPropertiesGetterName(method);
+    bool client_streaming = method->client_streaming();
+    bool server_streaming = method->server_streaming();
+
+    if (client_streaming) {
+        p->Print(
+            *vars,
+            "public $StreamObserver$<$input_type$> $lower_method_name$(\n"
+            "    $StreamObserver$<$output_type$> responseObserver) {\n"
+            "    return asyncUnimplementedStreamingCall($method_method_name$(), responseObserver);\n"
+            "}\n\n");
+
+    } else if (server_streaming) {
+        p->Print(
+            *vars,
+            "@$Override$\n"
+            "public final $Iterator$<$output_type$> $lower_method_name$(\n"
+            "    $input_type$ request) {\n$default_method_body$\n}\n\n");
+        p->Print(
+            *vars,
+            "public void $lower_method_name$($input_type$ request,\n"
+            "    $StreamObserver$<$output_type$> responseObserver) {\n"
+            "    asyncUnimplementedUnaryCall($method_method_name$(), responseObserver);\n\n"
+            "}\n");
+    } else {
+       // Simple RPC
+        p->Print(
+            *vars,
+            "@$Override$\n"
+            "public final $output_type$ $lower_method_name$"
+            "($input_type$ request) {\n$default_method_body$\n}\n\n");
+       // Simple Future RPC
+        p->Print(
+            *vars,
+            "@$Override$\n"
+            "public final $ListenableFuture$<$output_type$> $lower_method_name$Async(\n"
+            "    $input_type$ request) {\n$default_method_body$\n}\n\n");
+       // Simple Stream RPC
+        p->Print(
+            *vars,
+            "public void $lower_method_name$($input_type$ request,\n"
+            "    $StreamObserver$<$output_type$> responseObserver) {\n"
+            "    asyncUnimplementedUnaryCall($method_method_name$(), responseObserver);\n"
+            "}\n\n");
+    }
+    p->Outdent();
+  }
+
     p->Print("\n");
     p->Print(
         *vars,
-        "@$Override$ public final $ServerServiceDefinition$ bindService() {\n");
+        "@$Override$\n public final $ServerServiceDefinition$ bindService() {\n");
     (*vars)["instance"] = "this";
     PrintBindServiceMethodBody(service, vars, p, generate_nano);
     p->Print("}\n");
-  }
+    p->Outdent();
+    p->Print("}\n\n");
+}
 
-  p->Outdent();
-  p->Print("}\n\n");
+static void PrintDubboInterface(
+    const ServiceDescriptor* service,
+    std::map<string, string>* vars,
+    Printer* p, bool interface, bool generate_nano) {
+    const string service_name = service->name();
+    (*vars)["service_name"] = service_name;
+    (*vars)["dubbo_interface"] = "I" + service_name;
+    if (interface) {
+        p->Print(
+            "/**\n "
+            "* Code generated for Dubbo\n "
+            "*/\n"
+        );
+        p->Print(
+        *vars,
+        "public interface $dubbo_interface$ {\n\n");
+
+        for (int i = 0; i < service->method_count(); ++i) {
+            const MethodDescriptor* method = service->method(i);
+            (*vars)["input_type"] = MessageFullJavaName(generate_nano,
+                                                        method->input_type());
+            (*vars)["output_type"] = MessageFullJavaName(generate_nano,
+                                                         method->output_type());
+            (*vars)["lower_method_name"] = LowerMethodName(method);
+            (*vars)["method_method_name"] = MethodPropertiesGetterName(method);
+            bool client_streaming = method->client_streaming();
+            bool server_streaming = method->server_streaming();
+
+            if (client_streaming) {
+                p->Print(
+                    *vars,
+                    "public $StreamObserver$<$input_type$> $lower_method_name$(\n"
+                    "    $StreamObserver$<$output_type$> responseObserver);\n\n");
+
+            } else if (server_streaming) {
+                p->Print(
+                    *vars,
+                    "default public $Iterator$<$output_type$> $lower_method_name$(\n"
+                    "    $input_type$ request) {\n$default_method_body$\n}\n\n");
+                p->Print(
+                    *vars,
+                    "public void $lower_method_name$($input_type$ request,\n"
+                    "    $StreamObserver$<$output_type$> responseObserver);\n\n");
+            } else {
+               // Simple RPC
+                p->Print(
+                    *vars,
+                    "default public $output_type$ $lower_method_name$"
+                    "($input_type$ request) {\n$default_method_body$\n}\n\n");
+               // Simple Future RPC
+                p->Print(
+                    *vars,
+                    "default public $ListenableFuture$<$output_type$> $lower_method_name$Async(\n"
+                    "    $input_type$ request) {\n$default_method_body$\n}\n\n");
+               // Simple Stream RPC
+                p->Print(
+                    *vars,
+                    "public void $lower_method_name$($input_type$ request,\n"
+                    "    $StreamObserver$<$output_type$> responseObserver);\n\n");
+            }
+            p->Outdent();
+        }
+
+        p->Outdent();
+        p->Print("}\n\n");
+    }
+    // Dubbo Stub
+    else {
+        (*vars)["dubbo_stub"] = "Dubbo" + service_name + "Stub";
+        p->Print(*vars, "public static class $dubbo_stub$ implements $dubbo_interface$ {\n\n");
+
+        // Properties
+        p->Print("private "); p->Print(service_name.c_str()); p->Print("BlockingStub blockingStub;\n");
+        p->Print("private "); p->Print(service_name.c_str()); p->Print("FutureStub futureStub;\n");
+        p->Print("private "); p->Print(service_name.c_str()); p->Print("Stub stub;\n\n");
+
+        // Consustor
+        p->Print(*vars, "public $dubbo_stub$(Channel channel) {\n"
+        "   blockingStub = $service_class_name$.newBlockingStub(channel);\n"
+        "   futureStub = $service_class_name$.newFutureStub(channel);\n"
+        "   stub = $service_class_name$.newStub(channel);\n"
+        "}\n\n");
+
+        for (int i = 0; i < service->method_count(); ++i) {
+            const MethodDescriptor* method = service->method(i);
+            (*vars)["input_type"] = MessageFullJavaName(generate_nano,
+                                                        method->input_type());
+            (*vars)["output_type"] = MessageFullJavaName(generate_nano,
+                                                         method->output_type());
+            (*vars)["lower_method_name"] = LowerMethodName(method);
+            (*vars)["method_method_name"] = MethodPropertiesGetterName(method);
+            bool client_streaming = method->client_streaming();
+            bool server_streaming = method->server_streaming();
+
+            if (client_streaming) {
+                p->Print(
+                    *vars,
+                    "public $StreamObserver$<$input_type$> $lower_method_name$(\n"
+                    "    $StreamObserver$<$output_type$> responseObserver) {\n"
+                    "    return stub.$lower_method_name$(responseObserver);\n"
+                    "}\n\n");
+
+            } else if (server_streaming) {
+                p->Print(
+                    *vars,
+                    "public $Iterator$<$output_type$> $lower_method_name$(\n"
+                    "    $input_type$ request) {\n"
+                    "    return blockingStub.$lower_method_name$(request);\n"
+                    "}\n\n");
+                p->Print(
+                    *vars,
+                    "public void $lower_method_name$($input_type$ request,\n"
+                    "    $StreamObserver$<$output_type$> responseObserver) {\n"
+                    "    stub.$lower_method_name$(request, responseObserver);\n"
+                    "}\n\n");
+            } else {
+               // Simple RPC
+                p->Print(
+                    *vars,
+                    "public $output_type$ $lower_method_name$"
+                    "($input_type$ request) {\n"
+                    "    return blockingStub.$lower_method_name$(request);\n"
+                    "}\n\n");
+               // Simple Future RPC
+                p->Print(
+                    *vars,
+                    "public $ListenableFuture$<$output_type$> $lower_method_name$Async(\n"
+                    "    $input_type$ request) {\n"
+                    "    return futureStub.$lower_method_name$(request);\n"
+                    "}\n\n");
+               // Simple Stream RPC
+                p->Print(
+                    *vars,
+                    "public void $lower_method_name$($input_type$ request,\n"
+                    "    $StreamObserver$<$output_type$> responseObserver){\n"
+                    "    stub.$lower_method_name$(request, responseObserver);\n"
+                    "}\n\n");
+            }
+            p->Outdent();
+        }
+        p->Outdent();
+        p->Print("}\n\n");
+    }
+    p->Outdent();
 }
 
 static bool CompareMethodClientStreaming(const MethodDescriptor* method1,
@@ -1225,10 +1417,14 @@ static void PrintService(const ServiceDescriptor* service,
   p->Print("}\n\n");
 
   bool generate_nano = flavor == ProtoFlavor::NANO;
-  PrintStub(service, vars, p, ABSTRACT_CLASS, generate_nano);
+//  PrintStub(service, vars, p, ABSTRACT_CLASS, generate_nano);
   PrintStub(service, vars, p, ASYNC_CLIENT_IMPL, generate_nano);
   PrintStub(service, vars, p, BLOCKING_CLIENT_IMPL, generate_nano);
   PrintStub(service, vars, p, FUTURE_CLIENT_IMPL, generate_nano);
+
+  PrintImplBase(service, vars, p, generate_nano);
+  PrintDubboInterface(service, vars, p, true, generate_nano);
+  PrintDubboInterface(service, vars, p, false, generate_nano);
 
   PrintMethodHandlerClass(service, vars, p, generate_nano);
   PrintGetServiceDescriptorMethod(service, vars, p, flavor);
@@ -1306,6 +1502,9 @@ void GenerateService(const ServiceDescriptor* service,
   vars["Generated"] = "javax.annotation.Generated";
   vars["ListenableFuture"] =
       "com.google.common.util.concurrent.ListenableFuture";
+  vars["default_method_body"] = "   throw new UnsupportedOperationException(\""
+             "No need to override this method, extend XxxImplBase and override "
+             "all methods it allows.\");";
 
   Printer printer(out, '$');
   string package_name = ServiceJavaPackage(service->file(),
@@ -1315,6 +1514,7 @@ void GenerateService(const ServiceDescriptor* service,
         "package $package_name$;\n\n",
         "package_name", package_name);
   }
+
   PrintImports(&printer, flavor == ProtoFlavor::NANO);
 
   // Package string is used to fully qualify method names.

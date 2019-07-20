@@ -93,6 +93,9 @@
           <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
           <pluginId>grpc-java</pluginId>
           <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+          <outputDirectory>build/generated/source/proto/main/java</outputDirectory>
+          <clearOutputDirectory>false</clearOutputDirectory>
+          <!--          <outputDirectory>build/generated/source/proto/main</outputDirectory>-->
         </configuration>
         <executions>
           <execution>
@@ -117,6 +120,25 @@
               <rules>
                 <requireUpperBoundDeps/>
               </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>build/generated/source/proto/main/java</source>
+                <source>build/generated/source/proto/main/grpc</source>
+                <source>build/generated/source/proto/main</source>
+              </sources>
             </configuration>
           </execution>
         </executions>
