@@ -1,3 +1,113 @@
+# Dubbo customized version
+
+## 修改内容
+
+1. Dubbo Interface
+```java
+public interface IGreeter {
+
+    default public io.grpc.examples.helloworld.HelloReply sayHello(io.grpc.examples.helloworld.HelloRequest request) {
+       throw new UnsupportedOperationException("No need to override this method, extend XxxImplBase and override all methods it allows.");
+    }
+    
+    default public com.google.common.util.concurrent.ListenableFuture<io.grpc.examples.helloworld.HelloReply> sayHelloAsync(
+        io.grpc.examples.helloworld.HelloRequest request) {
+       throw new UnsupportedOperationException("No need to override this method, extend XxxImplBase and override all methods it allows.");
+    }
+    
+    public void sayHello(io.grpc.examples.helloworld.HelloRequest request,
+        io.grpc.stub.StreamObserver<io.grpc.examples.helloworld.HelloReply> responseObserver);
+
+}
+```
+
+2. Dubbo Stub
+```java
+public static DubboGreeterStub getDubboStub(io.grpc.Channel channel) {
+  return new DubboGreeterStub(channel);
+}
+
+public static class DubboGreeterStub implements IGreeter {
+
+    private GreeterBlockingStub blockingStub;
+    private GreeterFutureStub futureStub;
+    private GreeterStub stub;
+    
+    public DubboGreeterStub(io.grpc.Channel channel) {
+       blockingStub = GreeterGrpc.newBlockingStub(channel);
+       futureStub = GreeterGrpc.newFutureStub(channel);
+       stub = GreeterGrpc.newStub(channel);
+    }
+    
+    public io.grpc.examples.helloworld.HelloReply sayHello(io.grpc.examples.helloworld.HelloRequest request) {
+        return blockingStub.sayHello(request);
+    }
+    
+    public com.google.common.util.concurrent.ListenableFuture<io.grpc.examples.helloworld.HelloReply> sayHelloAsync(
+        io.grpc.examples.helloworld.HelloRequest request) {
+        return futureStub.sayHello(request);
+    }
+    
+    public void sayHello(io.grpc.examples.helloworld.HelloRequest request,
+        io.grpc.stub.StreamObserver<io.grpc.examples.helloworld.HelloReply> responseObserver){
+        stub.sayHello(request, responseObserver);
+    }
+
+}
+
+```
+
+3. XxxImplBase implements DubboInterface
+```java
+public static abstract class GreeterImplBase implements io.grpc.BindableService, IGreeter {
+
+  @java.lang.Override
+  public final io.grpc.examples.helloworld.HelloReply sayHello(io.grpc.examples.helloworld.HelloRequest request) {
+     throw new UnsupportedOperationException("No need to override this method, extend XxxImplBase and override all methods it allows.");
+  }
+
+  @java.lang.Override
+  public final com.google.common.util.concurrent.ListenableFuture<io.grpc.examples.helloworld.HelloReply> sayHelloAsync(
+      io.grpc.examples.helloworld.HelloRequest request) {
+     throw new UnsupportedOperationException("No need to override this method, extend XxxImplBase and override all methods it allows.");
+  }
+
+  public void sayHello(io.grpc.examples.helloworld.HelloRequest request,
+      io.grpc.stub.StreamObserver<io.grpc.examples.helloworld.HelloReply> responseObserver) {
+      asyncUnimplementedUnaryCall(getSayHelloMethod(), responseObserver);
+  }
+  
+  ...
+}
+```
+
+## 如何构建
+
+To compile the plugin:
+```
+$ ../gradlew java_pluginExecutable
+```
+
+To publish to local repository
+```
+$ ../gradlew publishToMavenLocal
+```
+
+## 远程发布
+
+Add gradle.properties
+```properties
+repositoryUser=user
+repositoryPasword=pwd
+```
+
+Then, run
+```
+$ ../gradlew publishMavenPublicationToDubboRepository
+```
+Notice current groupId is `com.alibaba`.
+
+
 gRPC Java Codegen Plugin for Protobuf Compiler
 ==============================================
 
