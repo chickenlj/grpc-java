@@ -16,8 +16,8 @@
     <protobuf.version>3.6.1</protobuf.version>
     <protoc.version>3.6.1</protoc.version>
     <!-- required for jdk9 -->
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <dependencyManagement>
@@ -93,8 +93,8 @@
           <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
           <pluginId>grpc-java</pluginId>
           <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
-          <outputDirectory>build/generated/source/proto/main/java</outputDirectory>
-          <clearOutputDirectory>false</clearOutputDirectory>
+          <!--          <outputDirectory>build/generated/source/proto/main/java</outputDirectory>-->
+          <!--          <clearOutputDirectory>false</clearOutputDirectory>-->
           <!--          <outputDirectory>build/generated/source/proto/main</outputDirectory>-->
         </configuration>
         <executions>

@@ -51,8 +51,8 @@ subprojects {
     group = "io.grpc"
     version = "1.19.0" // CURRENT_GRPC_VERSION
 
-    sourceCompatibility = 1.7
-    targetCompatibility = 1.7
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 
     repositories {
         maven { // The google mirror is less flaky than mavenCentral()
@@ -428,6 +428,7 @@ subprojects {
     }
 
     signing {
+        useGpgCmd()
         required false
         sign publishing.publications.maven
     }
