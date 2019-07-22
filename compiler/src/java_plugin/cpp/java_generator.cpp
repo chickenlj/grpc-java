@@ -1054,6 +1054,10 @@ static void PrintDubboInterface(
         }
         p->Outdent();
         p->Print("}\n\n");
+
+        p->Print(*vars, "public static $dubbo_stub$ getDubboStub($Channel$ channel) {\n\n");
+        p->Print(*vars, "  return new $dubbo_stub$(channel);");
+        p->Print("}\n\n");
     }
     p->Outdent();
 }
