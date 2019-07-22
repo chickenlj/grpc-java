@@ -45,7 +45,7 @@ public static class DubboGreeterStub implements IGreeter {
     
     public com.google.common.util.concurrent.ListenableFuture<io.grpc.examples.helloworld.HelloReply> sayHelloAsync(
         io.grpc.examples.helloworld.HelloRequest request) {
-        return futureStub.sayHello(request);
+        return futureStub.sayHello(requesthttps://github.com/apache/dubbo-samples.git);
     }
     
     public void sayHello(io.grpc.examples.helloworld.HelloRequest request,
