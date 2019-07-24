@@ -118,11 +118,11 @@ checkDependencies ()
   echo "Checking for unexpected dependencies ..."
   eval $dump_cmd | grep -i -v "$white_list"
   ret=$?
-#  if [[ $ret == 0 ]]; then
-#    fail "found unexpected dependencies (listed above)."
-#  elif [[ $ret != 1 ]]; then
-#    fail "Error when checking dependencies."
-#  fi  # grep returns 1 when "not found", which is what we expect
+  if [[ $ret == 0 ]]; then
+    fail "found unexpected dependencies (listed above)."
+  elif [[ $ret != 1 ]]; then
+    fail "Error when checking dependencies."
+  fi  # grep returns 1 when "not found", which is what we expect
   echo "Dependencies look good."
   echo
 }
