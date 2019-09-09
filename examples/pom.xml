@@ -92,7 +92,9 @@
         <configuration>
           <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
           <pluginId>grpc-java</pluginId>
-          <pluginArtifact>io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}</pluginArtifact>
+          <pluginArtifact>com.alibaba:protoc-gen-grpc-java:1.19.0-SNAPSHOT:exe:${os.detected.classifier}
+          </pluginArtifact>
+          <pluginParameter>dubbo</pluginParameter>
           <!--          <outputDirectory>build/generated/source/proto/main/java</outputDirectory>-->
           <!--          <clearOutputDirectory>false</clearOutputDirectory>-->
           <!--          <outputDirectory>build/generated/source/proto/main</outputDirectory>-->

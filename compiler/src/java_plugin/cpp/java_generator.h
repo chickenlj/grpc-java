@@ -54,4 +54,25 @@ void GenerateService(const google::protobuf::ServiceDescriptor* service,
 
 }  // namespace java_grpc_generator
 
+namespace java_dubbo_generator {
+
+enum ProtoFlavor {
+  NORMAL
+};
+
+// Returns the package name of the Dubbo services defined in the given file.
+string ServiceJavaPackage(const google::protobuf::FileDescriptor* file, bool nano);
+
+// Returns the name of the outer class that wraps in all the generated code for
+// the given service.
+string ServiceClassName(const google::protobuf::ServiceDescriptor* service);
+
+// Writes the generated service interface into the given ZeroCopyOutputStream
+void GenerateService(const google::protobuf::ServiceDescriptor* service,
+                     google::protobuf::io::ZeroCopyOutputStream* out,
+                     ProtoFlavor flavor,
+                     bool disable_version);
+
+}  // namespace java_dubbo_generator
+
 #endif  // NET_GRPC_COMPILER_JAVA_GENERATOR_H_
