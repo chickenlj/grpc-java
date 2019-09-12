@@ -1182,105 +1182,105 @@ static void PrintMethodHandlerClass(const ServiceDescriptor* service,
 }
 
 static void PrintGetServiceDescriptorMethod(const ServiceDescriptor* service,
-                                   std::map<string, string>* vars,
-                                   Printer* p,
-                                   ProtoFlavor flavor) {
-  (*vars)["service_name"] = service->name();
+                                    std::map<string, string>* vars,
+                                    Printer* p,
+                                    ProtoFlavor flavor) {
+   (*vars)["service_name"] = service->name();
 
 
-  if (flavor == ProtoFlavor::NORMAL) {
-    (*vars)["proto_base_descriptor_supplier"] = service->name() + "BaseDescriptorSupplier";
-    (*vars)["proto_file_descriptor_supplier"] = service->name() + "FileDescriptorSupplier";
-    (*vars)["proto_method_descriptor_supplier"] = service->name() + "MethodDescriptorSupplier";
-    (*vars)["proto_class_name"] = google::protobuf::compiler::java::ClassName(service->file());
-    p->Print(
-        *vars,
-        "private static abstract class $proto_base_descriptor_supplier$\n"
-        "    implements $ProtoFileDescriptorSupplier$, $ProtoServiceDescriptorSupplier$ {\n"
-        "  $proto_base_descriptor_supplier$() {}\n"
-        "\n"
-        "  @$Override$\n"
-        "  public com.google.protobuf.Descriptors.FileDescriptor getFileDescriptor() {\n"
-        "    return $proto_class_name$.getDescriptor();\n"
-        "  }\n"
-        "\n"
-        "  @$Override$\n"
-        "  public com.google.protobuf.Descriptors.ServiceDescriptor getServiceDescriptor() {\n"
-        "    return getFileDescriptor().findServiceByName(\"$service_name$\");\n"
-        "  }\n"
-        "}\n"
-        "\n"
-        "private static final class $proto_file_descriptor_supplier$\n"
-        "    extends $proto_base_descriptor_supplier$ {\n"
-        "  $proto_file_descriptor_supplier$() {}\n"
-        "}\n"
-        "\n"
-        "private static final class $proto_method_descriptor_supplier$\n"
-        "    extends $proto_base_descriptor_supplier$\n"
-        "    implements $ProtoMethodDescriptorSupplier$ {\n"
-        "  private final String methodName;\n"
-        "\n"
-        "  $proto_method_descriptor_supplier$(String methodName) {\n"
-        "    this.methodName = methodName;\n"
-        "  }\n"
-        "\n"
-        "  @$Override$\n"
-        "  public com.google.protobuf.Descriptors.MethodDescriptor getMethodDescriptor() {\n"
-        "    return getServiceDescriptor().findMethodByName(methodName);\n"
-        "  }\n"
-        "}\n\n");
-  }
+   if (flavor == ProtoFlavor::NORMAL) {
+     (*vars)["proto_base_descriptor_supplier"] = service->name() + "BaseDescriptorSupplier";
+     (*vars)["proto_file_descriptor_supplier"] = service->name() + "FileDescriptorSupplier";
+     (*vars)["proto_method_descriptor_supplier"] = service->name() + "MethodDescriptorSupplier";
+     (*vars)["proto_class_name"] = google::protobuf::compiler::java::ClassName(service->file());
+     p->Print(
+         *vars,
+         "private static abstract class $proto_base_descriptor_supplier$\n"
+         "    implements $ProtoFileDescriptorSupplier$, $ProtoServiceDescriptorSupplier$ {\n"
+         "  $proto_base_descriptor_supplier$() {}\n"
+         "\n"
+         "  @$Override$\n"
+         "  public com.google.protobuf.Descriptors.FileDescriptor getFileDescriptor() {\n"
+         "    return $proto_class_name$.getDescriptor();\n"
+         "  }\n"
+         "\n"
+         "  @$Override$\n"
+         "  public com.google.protobuf.Descriptors.ServiceDescriptor getServiceDescriptor() {\n"
+         "    return getFileDescriptor().findServiceByName(\"$service_name$\");\n"
+         "  }\n"
+         "}\n"
+         "\n"
+         "private static final class $proto_file_descriptor_supplier$\n"
+         "    extends $proto_base_descriptor_supplier$ {\n"
+         "  $proto_file_descriptor_supplier$() {}\n"
+         "}\n"
+         "\n"
+         "private static final class $proto_method_descriptor_supplier$\n"
+         "    extends $proto_base_descriptor_supplier$\n"
+         "    implements $ProtoMethodDescriptorSupplier$ {\n"
+         "  private final String methodName;\n"
+         "\n"
+         "  $proto_method_descriptor_supplier$(String methodName) {\n"
+         "    this.methodName = methodName;\n"
+         "  }\n"
+         "\n"
+         "  @$Override$\n"
+         "  public com.google.protobuf.Descriptors.MethodDescriptor getMethodDescriptor() {\n"
+         "    return getServiceDescriptor().findMethodByName(methodName);\n"
+         "  }\n"
+         "}\n\n");
+   }
 
-  p->Print(
-      *vars,
-      "private static volatile $ServiceDescriptor$ serviceDescriptor;\n\n");
+   p->Print(
+       *vars,
+       "private static volatile $ServiceDescriptor$ serviceDescriptor;\n\n");
 
-  p->Print(
-      *vars,
-      "public static $ServiceDescriptor$ getServiceDescriptor() {\n");
-  p->Indent();
-  p->Print(
-      *vars,
-      "$ServiceDescriptor$ result = serviceDescriptor;\n");
-  p->Print("if (result == null) {\n");
-  p->Indent();
-  p->Print(
-      *vars,
-      "synchronized ($service_class_name$.class) {\n");
-  p->Indent();
-  p->Print("result = serviceDescriptor;\n");
-  p->Print("if (result == null) {\n");
-  p->Indent();
+   p->Print(
+       *vars,
+       "public static $ServiceDescriptor$ getServiceDescriptor() {\n");
+   p->Indent();
+   p->Print(
+       *vars,
+       "$ServiceDescriptor$ result = serviceDescriptor;\n");
+   p->Print("if (result == null) {\n");
+   p->Indent();
+   p->Print(
+       *vars,
+       "synchronized ($service_class_name$.class) {\n");
+   p->Indent();
+   p->Print("result = serviceDescriptor;\n");
+   p->Print("if (result == null) {\n");
+   p->Indent();
 
-  p->Print(
-      *vars,
-      "serviceDescriptor = result = $ServiceDescriptor$.newBuilder(SERVICE_NAME)");
-  p->Indent();
-  p->Indent();
-  if (flavor == ProtoFlavor::NORMAL) {
-    p->Print(
-        *vars,
-        "\n.setSchemaDescriptor(new $proto_file_descriptor_supplier$())");
-  }
-  for (int i = 0; i < service->method_count(); ++i) {
-    const MethodDescriptor* method = service->method(i);
-    (*vars)["method_method_name"] = MethodPropertiesGetterName(method);
-    p->Print(*vars, "\n.addMethod($method_method_name$())");
-  }
-  p->Print("\n.build();\n");
-  p->Outdent();
-  p->Outdent();
+   p->Print(
+       *vars,
+       "serviceDescriptor = result = $ServiceDescriptor$.newBuilder(SERVICE_NAME)");
+   p->Indent();
+   p->Indent();
+   if (flavor == ProtoFlavor::NORMAL) {
+     p->Print(
+         *vars,
+         "\n.setSchemaDescriptor(new $proto_file_descriptor_supplier$())");
+   }
+   for (int i = 0; i < service->method_count(); ++i) {
+     const MethodDescriptor* method = service->method(i);
+     (*vars)["method_method_name"] = MethodPropertiesGetterName(method);
+     p->Print(*vars, "\n.addMethod($method_method_name$())");
+   }
+   p->Print("\n.build();\n");
+   p->Outdent();
+   p->Outdent();
 
-  p->Outdent();
-  p->Print("}\n");
-  p->Outdent();
-  p->Print("}\n");
-  p->Outdent();
-  p->Print("}\n");
-  p->Print("return result;\n");
-  p->Outdent();
-  p->Print("}\n");
-}
+   p->Outdent();
+   p->Print("}\n");
+   p->Outdent();
+   p->Print("}\n");
+   p->Outdent();
+   p->Print("}\n");
+   p->Print("return result;\n");
+   p->Outdent();
+   p->Print("}\n");
+ }
 
 static void PrintBindServiceMethodBody(const ServiceDescriptor* service,
                                    std::map<string, string>* vars,

@@ -386,10 +386,29 @@ enum CallType {
   FUTURE_CALL = 2
 };
 
-static void PrintBindServiceMethodBody(const ServiceDescriptor* service,
+static void PrintMarshallerStaticBlock(const ServiceDescriptor* service,
                                    std::map<string, string>* vars,
-                                   Printer* p,
-                                   bool generate_nano);
+                                   Printer* p) {
+   for (int i = 0; i < service->method_count(); ++i) {
+       const MethodDescriptor* method = service->method(i);
+       (*vars)["input_type"] = google::protobuf::compiler::java::ClassName(method->input_type());
+       (*vars)["output_type"] = google::protobuf::compiler::java::ClassName(method->output_type());
+       p->Print(
+          *vars,
+          "private static final AtomicBoolean registered = new AtomicBoolean();\n\n");
+
+       p->Print(
+           *vars,
+           "static {\n"
+           "    if (registered.compareAndSet(false, true)) {\n"
+           "       $ProtobufUtils$.marshaller(\n"
+           "            $input_type$.getDefaultInstance());\n"
+           "       $ProtobufUtils$.marshaller(\n"
+           "            $output_type$.getDefaultInstance());\n"
+           "    }\n"
+           "}\n\n");
+   }
+}
 
 static void PrintDubboInterface(
     const ServiceDescriptor* service,
@@ -465,6 +484,9 @@ static void PrintService(const ServiceDescriptor* service,
       *vars,
       "public final class $service_class_name$ {\n\n");
   p->Indent();
+
+  PrintMarshallerStaticBlock(service, vars, p);
+
   p->Print(
       *vars,
       "private $service_class_name$() {}\n\n");
@@ -484,6 +506,9 @@ void PrintImports(Printer* p) {
   p->Print(
       "import "
       "java.util.concurrent.CompletableFuture;\n");
+  p->Print(
+        "import "
+        "java.util.concurrent.atomic.AtomicBoolean;\n");
 }
 
 void GenerateService(const ServiceDescriptor* service,
@@ -500,6 +525,10 @@ void GenerateService(const ServiceDescriptor* service,
   vars["Generated"] = "javax.annotation.Generated";
   vars["CompletableFuture"] =
       "java.util.concurrent.CompletableFuture";
+  vars["AtomicBoolean"] =
+        "java.util.concurrent.atomic.AtomicBoolean";
+  vars["ProtobufUtils"] =
+        "org.apache.dubbo.common.serialize.protobuf.support.ProtobufUtils";
 
   Printer printer(out, '$');
   string package_name = ServiceJavaPackage(service->file(),false);
